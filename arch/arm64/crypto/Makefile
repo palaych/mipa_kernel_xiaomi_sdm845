@@ -65,6 +65,7 @@ CFLAGS_crc32-arm64.o	:= -mcpu=generic+crc
 $(obj)/aes-glue-%.o: $(src)/aes-glue.c FORCE
 	$(call if_changed_rule,cc_o_c)
 
+ifdef REGENERATE_ARM64_CRYPTO
 quiet_cmd_perlasm = PERLASM $@
       cmd_perlasm = $(PERL) $(<) void $(@)
 
@@ -73,5 +74,6 @@ $(src)/sha256-core.S_shipped: $(src)/sha512-armv8.pl
 
 $(src)/sha512-core.S_shipped: $(src)/sha512-armv8.pl
 	$(call cmd,perlasm)
+endif
 
 .PRECIOUS: $(obj)/sha256-core.S $(obj)/sha512-core.S
