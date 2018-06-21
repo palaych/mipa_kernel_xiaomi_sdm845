@@ -7002,6 +7002,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	unsigned long target_util = ULONG_MAX;
 	unsigned long best_active_util = ULONG_MAX;
 	unsigned long best_active_cuml_util = ULONG_MAX;
+	unsigned long best_idle_cuml_util = ULONG_MAX;
 	unsigned long target_idle_max_spare_cap = 0;
 	int best_idle_cstate = INT_MAX;
 	struct sched_domain *sd;
@@ -7234,7 +7235,13 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 				 * shallow idle big CPU.
 				 */
 				if (sysctl_sched_cstate_aware &&
-					best_idle_cstate <= idle_idx)
+				    best_idle_cstate < idle_idx)
+					continue;
+
+				if (best_idle_cstate == idle_idx &&
+					(best_idle_cpu == prev_cpu ||
+					(i != prev_cpu &&
+					new_util_cuml > best_idle_cuml_util)))
 					continue;
 
 				/* Keep track of best idle CPU */
@@ -7242,6 +7249,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 				target_idle_max_spare_cap = capacity_orig -
 							    min_capped_util;
 				best_idle_cstate = idle_idx;
+				best_idle_cuml_util = new_util_cuml;
 				best_idle_cpu = i;
 				continue;
 			}
