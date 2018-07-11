@@ -302,6 +302,7 @@ static inline void walt_update_last_enqueue(struct task_struct *p)
 extern void walt_rotate_work_init(void);
 extern void walt_rotation_checkpoint(int nr_big);
 extern unsigned int walt_rotation_enabled;
+extern unsigned int walt_get_default_coloc_group_load(void);
 
 #else /* CONFIG_SCHED_WALT */
 
@@ -309,9 +310,14 @@ static inline void walt_sched_init(struct rq *rq) { }
 static inline void walt_rotate_work_init(void) { }
 static inline void walt_rotation_checkpoint(int nr_big) { }
 static inline void walt_update_last_enqueue(struct task_struct *p) { }
+
 static inline void walt_fixup_cumulative_runnable_avg(struct rq *rq,
 						      struct task_struct *p,
 						      u64 new_task_load) { }
+static inline unsigned int walt_get_default_coloc_group_load(void)
+{
+	return 0;
+}
 
 static inline void update_task_ravg(struct task_struct *p, struct rq *rq,
 				int event, u64 wallclock, u64 irqtime) { }
