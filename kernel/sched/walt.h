@@ -310,6 +310,10 @@ static inline void walt_sched_init(struct rq *rq) { }
 static inline void walt_rotate_work_init(void) { }
 static inline void walt_rotation_checkpoint(int nr_big) { }
 static inline void walt_update_last_enqueue(struct task_struct *p) { }
+static inline unsigned int walt_get_default_coloc_group_load(void)
+{
+	return 0;
+}
 
 static inline void walt_fixup_cumulative_runnable_avg(struct rq *rq,
 						      struct task_struct *p,
