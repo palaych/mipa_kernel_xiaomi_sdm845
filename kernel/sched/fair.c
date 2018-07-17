@@ -7193,7 +7193,6 @@ retry:
 				    best_idle_cstate <= idle_idx)
 					continue;
 
-				/* Keep track of best idle CPU */
 				target_capacity = capacity_orig;
 				target_idle_max_spare_cap = capacity_orig -
 							    min_capped_util;
