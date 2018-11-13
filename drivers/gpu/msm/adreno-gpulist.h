@@ -19,26 +19,6 @@ static const struct adreno_gpu_core adreno_gpulist[] = {
 		.core = 6,
 		.major = 3,
 		.minor = 0,
-		.patchid = 0,
-		.features = ADRENO_64BIT | ADRENO_RPMH |
-			ADRENO_GPMU | ADRENO_CONTENT_PROTECTION | ADRENO_LM,
-		.sqefw_name = "a630_sqe.fw",
-		.zap_name = "a630_zap",
-		.gpudev = &adreno_a6xx_gpudev,
-		.gmem_size = SZ_1M,
-		.num_protected_regs = 0x20,
-		.busy_mask = 0xFFFFFFFE,
-		.gpmufw_name = "a630_gmu.bin",
-		.gpmu_major = 0x1,
-		.gpmu_minor = 0x003,
-		.gpmu_tsens = 0x000C000D,
-		.max_power = 5448,
-	},
-	{
-		.gpurev = ADRENO_REV_A630,
-		.core = 6,
-		.major = 3,
-		.minor = 0,
 		.patchid = ANY_ID,
 		.features = ADRENO_64BIT | ADRENO_RPMH | ADRENO_IFPC |
 			ADRENO_GPMU | ADRENO_CONTENT_PROTECTION |
