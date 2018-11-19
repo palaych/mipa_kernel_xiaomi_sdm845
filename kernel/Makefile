@@ -129,6 +129,8 @@ ifeq ($(CONFIG_MACH_XIAOMI_D5X),y)
 $(obj)/config_data.gz: arch/arm64/configs/polaris-stock_defconfig FORCE
 else ifeq ($(CONFIG_MACH_XIAOMI_E1N),y)
 $(obj)/config_data.gz: arch/arm64/configs/dipper-stock_defconfig FORCE
+else ifeq ($(CONFIG_MACH_XIAOMI_E10),y)
+$(obj)/config_data.gz: arch/arm64/configs/beryllium-stock_defconfig FORCE
 endif
 	$(call if_changed,gzip)
 
