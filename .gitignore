@@ -118,3 +118,9 @@ all.config
 
 # fetched Android config fragments
 kernel/configs/android-*.cfg
+
+# Ignore compile dir
+out/
+build_polaris_clang.sh
+build_dipper_clang.sh
+build_perseus_clang.sh
