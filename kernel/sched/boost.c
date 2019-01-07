@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -46,6 +46,7 @@ static void boost_kick_cpus(void)
 	if (boost_policy != SCHED_BOOST_ON_BIG)
 		return;
 
+	cpus_read_lock();
 	cpumask_andnot(&kick_mask, cpu_online_mask, cpu_isolated_mask);
 
 	for_each_cpu(i, &kick_mask) {
@@ -64,6 +65,7 @@ static void boost_kick_cpus(void)
 				boost_kick(i);
 		}
 	}
+	cpus_read_unlock();
 }
 
 int got_boost_kick(void)
