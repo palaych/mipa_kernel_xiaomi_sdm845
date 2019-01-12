@@ -31,6 +31,12 @@
 #include <uapi/linux/psci.h>
 #endif
 
+#if defined(CONFIG_ARM64_SSBD) || defined(CONFIG_PSCI_BP_HARDENING)
+#include <linux/arm-smccc.h>
+#include <linux/psci.h>
+#include <uapi/linux/psci.h>
+#endif
+
 static bool __maybe_unused
 is_affected_midr_range(const struct arm64_cpu_capabilities *entry, int scope)
 {
