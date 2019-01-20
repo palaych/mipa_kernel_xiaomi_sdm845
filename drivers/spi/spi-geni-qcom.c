@@ -873,8 +873,6 @@ setup_ipc:
 			GENI_SE_DBG(mas->ipc, false, mas->dev,
 					"Auto Suspend is disabled\n");
 	}
-	if (mas->dis_autosuspend)
-		dmaengine_resume(mas->tx);
 exit_prepare_transfer_hardware:
 	return ret;
 }
@@ -896,7 +894,6 @@ static int spi_geni_unprepare_transfer_hardware(struct spi_master *spi)
 	}
 
 	if (mas->dis_autosuspend) {
-		dmaengine_pause(mas->tx);
 		pm_runtime_put_sync(mas->dev);
 		count = atomic_read(&mas->dev->power.usage_count);
 		if (count < 0)
