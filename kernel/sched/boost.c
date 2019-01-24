@@ -29,60 +29,6 @@ static enum sched_boost_policy boost_policy_dt = SCHED_BOOST_NONE;
 static DEFINE_MUTEX(boost_mutex);
 static int boost_refcount[MAX_NUM_BOOST_TYPE];
 
-static inline void boost_kick(int cpu)
-{
-	struct rq *rq = cpu_rq(cpu);
-
-	if (!test_and_set_bit(BOOST_KICK, &rq->walt_flags))
-		smp_send_reschedule(cpu);
-}
-
-static void boost_kick_cpus(void)
-{
-	int i;
-	struct cpumask kick_mask;
-	u32 nr_running;
-
-	if (boost_policy != SCHED_BOOST_ON_BIG)
-		return;
-
-	cpus_read_lock();
-	cpumask_andnot(&kick_mask, cpu_online_mask, cpu_isolated_mask);
-
-	for_each_cpu(i, &kick_mask) {
-		/*
-		 * kick only "small" cluster
-		 */
-		if (cpu_capacity(i) != max_capacity) {
-			nr_running = ACCESS_ONCE(cpu_rq(i)->nr_running);
-
-			/*
-			 * make sense to interrupt CPU if its run-queue
-			 * has something running in order to check for
-			 * migration afterwards, otherwise skip it.
-			 */
-			if (nr_running)
-				boost_kick(i);
-		}
-	}
-	cpus_read_unlock();
-}
-
-int got_boost_kick(void)
-{
-	int cpu = smp_processor_id();
-	struct rq *rq = cpu_rq(cpu);
-
-	return test_bit(BOOST_KICK, &rq->walt_flags);
-}
-
-void clear_boost_kick(int cpu)
-{
-	struct rq *rq = cpu_rq(cpu);
-
-	clear_bit(BOOST_KICK, &rq->walt_flags);
-}
-
 /*
  * Scheduler boost type and boost policy might at first seem unrelated,
  * however, there exists a connection between them that will allow us
@@ -148,7 +94,6 @@ static void _sched_set_boost(int type)
 		if (boost_refcount[FULL_THROTTLE_BOOST] == 1) {
 			core_ctl_set_boost(true);
 			restore_cgroup_boost_settings();
-			boost_kick_cpus();
 			if (!boost_refcount[RESTRAINED_BOOST])
 				walt_enable_frequency_aggregation(true);
 		}
@@ -157,10 +102,8 @@ static void _sched_set_boost(int type)
 	case CONSERVATIVE_BOOST:
 	    boost_refcount[CONSERVATIVE_BOOST]++;
 		if ((boost_refcount[CONSERVATIVE_BOOST] == 1) &&
-				!boost_refcount[FULL_THROTTLE_BOOST]) {
+				!boost_refcount[FULL_THROTTLE_BOOST])
 			update_cgroup_boost_settings();
-			boost_kick_cpus();
-		}
 		break;
 
 	case RESTRAINED_BOOST:
