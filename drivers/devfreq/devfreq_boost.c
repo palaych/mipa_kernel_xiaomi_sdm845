@@ -6,9 +6,9 @@
 #define pr_fmt(fmt) "devfreq_boost: " fmt
 
 #include <linux/devfreq_boost.h>
+#include <linux/msm_drm_notify.h>
 #include <linux/input.h>
 #include <linux/slab.h>
-#include <linux/msm_drm_notify.h>
 
 struct boost_dev {
 	struct workqueue_struct *wq;
@@ -57,7 +57,7 @@ void devfreq_boost_kick(enum df_device device)
 }
 
 static void __devfreq_boost_kick_max(struct boost_dev *b,
-				     unsigned int duration_ms)
+	unsigned int duration_ms)
 {
 	unsigned long flags, new_expires;
 
@@ -203,8 +203,8 @@ static void devfreq_input_boost(struct work_struct *work)
 
 static void devfreq_input_unboost(struct work_struct *work)
 {
-	struct boost_dev *b =
-		container_of(to_delayed_work(work), typeof(*b), input_unboost);
+	struct boost_dev *b = container_of(to_delayed_work(work),
+					   typeof(*b), input_unboost);
 	struct devfreq *df = b->df;
 
 	mutex_lock(&df->lock);
@@ -236,8 +236,8 @@ static void devfreq_max_boost(struct work_struct *work)
 
 static void devfreq_max_unboost(struct work_struct *work)
 {
-	struct boost_dev *b =
-		container_of(to_delayed_work(work), typeof(*b), max_unboost);
+	struct boost_dev *b = container_of(to_delayed_work(work),
+					   typeof(*b), max_unboost);
 	struct devfreq *df = b->df;
 
 	mutex_lock(&df->lock);
@@ -400,7 +400,7 @@ static int __init devfreq_boost_init(void)
 	d->msm_drm_notif.priority = INT_MAX;
 	ret = msm_drm_register_client(&d->msm_drm_notif);
 	if (ret) {
-		pr_err("Failed to register dsi_panel_notifier, err: %d\n", ret);
+		pr_err("Failed to register msm_drm notifier, err: %d\n", ret);
 		goto unregister_handler;
 	}
 
