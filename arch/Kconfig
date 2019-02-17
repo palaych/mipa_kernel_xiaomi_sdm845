@@ -518,7 +518,7 @@ config ARCH_SUPPORTS_LTO_CLANG
 	  - and linking with either lld or GNU gold w/ LLVMgold.
 
 choice
-	prompt "Link-Time Optimization (LTO) (EXPERIMENTAL)"
+	prompt "Link-Time Optimization (LTO)"
 	default LTO_NONE
 	help
 	  This option turns on Link-Time Optimization (LTO).
@@ -527,7 +527,7 @@ config LTO_NONE
 	bool "None"
 
 config LTO_CLANG
-	bool "Use clang Link Time Optimization (LTO) (EXPERIMENTAL)"
+	bool "Use clang Link Time Optimization (LTO)"
 	depends on ARCH_SUPPORTS_LTO_CLANG
 	depends on !FTRACE_MCOUNT_RECORD || HAVE_C_RECORDMCOUNT
 	select LTO
@@ -558,7 +558,7 @@ config CFI_PERMISSIVE
 	  CFI violations in drivers during development.
 
 config CFI_CLANG
-	bool "Use clang Control Flow Integrity (CFI) (EXPERIMENTAL)"
+	bool "Use clang Control Flow Integrity (CFI)"
 	depends on LTO_CLANG
 	depends on KALLSYMS
 	select CFI
