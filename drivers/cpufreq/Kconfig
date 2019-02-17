@@ -312,18 +312,6 @@ config REMOVE_INPUT_BOOST_FREQ_PERF
 	  of using a higher than cpuinfo.min_freq (e.g. OnePlus 5/5T/6)
 	  this frequency will be used.
 
-config GENERAL_BOOST_FREQ_LP
-	int "Low-power cluster general boost freq"
-	default "0"
-	help
-	  General boost frequency for the low-power CPU cluster.
-
-config GENERAL_BOOST_FREQ_PERF
-	int "Performance cluster general boost freq"
-	default "0"
-	help
-	  General boost frequency for the performance CPU cluster.
-
 endif
 
 comment "CPU frequency scaling drivers"
