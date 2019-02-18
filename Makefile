@@ -645,7 +645,6 @@ LDFINAL_vmlinux := $(LD)
 LD		:= $(LDGOLD)
 endif
 ifdef CONFIG_LD_LLD
-LDFINAL_vmlinux := $(LD)
 LD		:= $(LDLLD)
 endif
 
