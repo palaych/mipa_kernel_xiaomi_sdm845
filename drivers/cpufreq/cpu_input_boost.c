@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2018 Sultan Alsawaf <sultan@kerneltoast.com>.
+ * Copyright (C) 2018-2019 Sultan Alsawaf <sultan@kerneltoast.com>.
  */
 
 #define pr_fmt(fmt) "cpu_input_boost: " fmt
@@ -152,8 +152,8 @@ static void input_boost_worker(struct work_struct *work)
 
 static void input_unboost_worker(struct work_struct *work)
 {
-	struct boost_drv *b =
-		container_of(to_delayed_work(work), typeof(*b), input_unboost);
+	struct boost_drv *b = container_of(to_delayed_work(work),
+					   typeof(*b), input_unboost);
 
 	clear_boost_bit(b, INPUT_BOOST);
 	update_online_cpu_policy();
@@ -169,16 +169,15 @@ static void max_boost_worker(struct work_struct *work)
 	}
 
 	queue_delayed_work(b->wq, &b->max_unboost,
-			   msecs_to_jiffies(atomic_read(&b->max_boost_dur)));
+		msecs_to_jiffies(atomic_read(&b->max_boost_dur)));
 }
 
 static void max_unboost_worker(struct work_struct *work)
 {
-	struct boost_drv *b =
-		container_of(to_delayed_work(work), typeof(*b), max_unboost);
+	struct boost_drv *b = container_of(to_delayed_work(work),
+					   typeof(*b), max_unboost);
 
 	clear_boost_bit(b, MAX_BOOST);
-
 	update_online_cpu_policy();
 }
 
@@ -216,7 +215,7 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 }
 
 static int msm_drm_notifier_cb(struct notifier_block *nb,
-			  unsigned long action, void *data)
+			       unsigned long action, void *data)
 {
 	struct boost_drv *b = container_of(nb, typeof(*b), msm_drm_notif);
 	struct msm_drm_notifier *evdata = data;
@@ -369,7 +368,7 @@ static int __init cpu_input_boost_init(void)
 	b->msm_drm_notif.priority = INT_MAX;
 	ret = msm_drm_register_client(&b->msm_drm_notif);
 	if (ret) {
-		pr_err("Failed to register dsi_panel_notifier, err: %d\n", ret);
+		pr_err("Failed to register msm_drm notifier, err: %d\n", ret);
 		goto unregister_handler;
 	}
 

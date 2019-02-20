@@ -247,7 +247,7 @@ static void devfreq_max_unboost(struct work_struct *work)
 }
 
 static int msm_drm_notifier_cb(struct notifier_block *nb,
-			  unsigned long action, void *data)
+			       unsigned long action, void *data)
 {
 	struct df_boost_drv *d = container_of(nb, typeof(*d), msm_drm_notif);
 	struct msm_drm_notifier *evdata = data;
