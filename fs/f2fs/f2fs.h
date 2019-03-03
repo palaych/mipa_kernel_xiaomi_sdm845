@@ -1022,7 +1022,7 @@ struct f2fs_bio_info {
 };
 
 /* iv sector for security/pfe/pfk_fscrypt.c and f2fs */
-#define PG_DUN(i,p)                                            \
+#define PG_DUN_NEW(i,p)                                            \
 	((((i)->i_ino & 0xffffffff) << 32) | ((p)->index & 0xffffffff))
 
 #define FDEV(i)				(sbi->devs[i])
