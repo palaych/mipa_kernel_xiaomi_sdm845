@@ -565,7 +565,7 @@ void __weak smp_announce(void)
 	printk(KERN_INFO "Brought up %d CPUs\n", num_online_cpus());
 }
 
-static inline bool boot_cpu(int cpu)
+bool boot_cpu(int cpu)
 {
 	if (!have_boot_cpu_mask)
 		return true;

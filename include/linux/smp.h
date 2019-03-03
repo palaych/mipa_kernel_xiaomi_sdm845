@@ -193,6 +193,7 @@ extern void arch_disable_smp_support(void);
 
 extern void arch_enable_nonboot_cpus_begin(void);
 extern void arch_enable_nonboot_cpus_end(void);
+bool boot_cpu(int cpu);
 
 void smp_setup_processor_id(void);
 

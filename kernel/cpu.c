@@ -1146,7 +1146,7 @@ static int _cpu_up(unsigned int cpu, int tasks_frozen, enum cpuhp_state target)
 	if (trace_cpuhp_latency_enabled())
 		start_time = sched_clock();
 
-	if (!cpu_present(cpu)) {
+	if (!cpu_present(cpu) || !boot_cpu(cpu)) {
 		ret = -EINVAL;
 		goto out;
 	}
