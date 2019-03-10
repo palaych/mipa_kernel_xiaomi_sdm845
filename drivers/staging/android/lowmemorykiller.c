@@ -32,6 +32,7 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/devfreq_boost.h>
 #include <linux/init.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
@@ -59,6 +60,9 @@
 #else
 #define _ZONE ZONE_NORMAL
 #endif
+
+/* Duration to boost DDR bus to the max per memory reclaim event */
+#define BOOST_DURATION_MS (250)
 
 #define CREATE_TRACE_POINTS
 #include "trace/lowmemorykiller.h"
@@ -503,6 +507,7 @@ static unsigned long lowmem_scan(struct shrinker *s, struct shrink_control *sc)
 		return 0;
 	}
 
+	devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, BOOST_DURATION_MS);
 	selected_oom_score_adj = min_score_adj;
 
 	rcu_read_lock();
