@@ -1974,7 +1974,7 @@ long _do_fork(unsigned long clone_flags,
 	long nr;
 
 	/* Boost CPU to the max for 50 ms when userspace launches an app */
-	if (is_zygote_pid(current->pid)) {
+	if (is_zygote_pid(current->pid) && cpu_input_boost_within_input(75)) {
 		cpu_input_boost_kick_max(50);
 		devfreq_boost_kick_max(DEVFREQ_MSM_CPUBW, 50);
 	}
