@@ -8,17 +8,8 @@
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
 #include <linux/input.h>
-#include <linux/moduleparam.h>
 #include <linux/msm_drm_notify.h>
 #include <linux/slab.h>
-
-static unsigned int input_boost_freq_lp = CONFIG_INPUT_BOOST_FREQ_LP;
-static unsigned int input_boost_freq_hp = CONFIG_INPUT_BOOST_FREQ_PERF;
-static unsigned short input_boost_duration = CONFIG_INPUT_BOOST_DURATION_MS;
-
-module_param(input_boost_freq_lp, uint, 0644);
-module_param(input_boost_freq_hp, uint, 0644);
-module_param(input_boost_duration, short, 0644);
 
 /* Available bits for boost_drv state */
 #define SCREEN_AWAKE		BIT(0)
@@ -44,17 +35,9 @@ static struct boost_drv *boost_drv_g __read_mostly;
 static u32 get_boost_freq(struct boost_drv *b, u32 cpu)
 {
 	if (cpumask_test_cpu(cpu, cpu_lp_mask))
-		return input_boost_freq_lp;
+		return CONFIG_INPUT_BOOST_FREQ_LP;
 
-	return input_boost_freq_hp;
-}
-
-static u32 get_min_freq(struct boost_drv *b, u32 cpu)
-{
-	if (cpumask_test_cpu(cpu, cpu_lp_mask))
-		return CONFIG_REMOVE_INPUT_BOOST_FREQ_LP;
-
-	return CONFIG_REMOVE_INPUT_BOOST_FREQ_PERF;
+	return CONFIG_INPUT_BOOST_FREQ_PERF;
 }
 
 static u32 get_boost_state(struct boost_drv *b)
@@ -155,7 +138,7 @@ static void input_boost_worker(struct work_struct *work)
 	}
 
 	queue_delayed_work(b->wq, &b->input_unboost,
-			   msecs_to_jiffies(input_boost_duration));
+			   msecs_to_jiffies(CONFIG_INPUT_BOOST_DURATION_MS));
 }
 
 static void input_unboost_worker(struct work_struct *work)
@@ -194,7 +177,7 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 {
 	struct boost_drv *b = container_of(nb, typeof(*b), cpu_notif);
 	struct cpufreq_policy *policy = data;
-	u32 boost_freq, min_freq, state;
+	u32 boost_freq, state;
 
 	if (action != CPUFREQ_ADJUST)
 		return NOTIFY_OK;
@@ -215,8 +198,7 @@ static int cpu_notifier_cb(struct notifier_block *nb,
 		boost_freq = get_boost_freq(b, policy->cpu);
 		policy->min = min(policy->max, boost_freq);
 	} else {
-		min_freq = get_min_freq(b, policy->cpu);
-		policy->min = max(policy->cpuinfo.min_freq, min_freq);
+		policy->min = policy->cpuinfo.min_freq;
 	}
 
 	return NOTIFY_OK;
