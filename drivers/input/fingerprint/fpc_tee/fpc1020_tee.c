@@ -26,7 +26,9 @@
  */
 
 #include <linux/atomic.h>
+#include <linux/cpu_input_boost.h>
 #include <linux/delay.h>
+#include <linux/devfreq_boost.h>
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
@@ -591,6 +593,9 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	if (atomic_read(&fpc1020->wakeup_enabled)) {
 		__pm_wakeup_event(&fpc1020->ttw_wl, FPC_TTW_HOLD_TIME);
 	}
+
+	cpu_input_boost_kick_wake();
+	devfreq_boost_kick_wake(DEVFREQ_MSM_CPUBW);
 
 	sysfs_notify(&fpc1020->dev->kobj, NULL, dev_attr_irq.attr.name);
 	if (fpc1020->wait_finger_down && fpc1020->fb_black && fpc1020->prepared) {
