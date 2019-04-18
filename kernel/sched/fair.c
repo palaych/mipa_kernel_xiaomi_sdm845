@@ -6938,6 +6938,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	unsigned long target_max_spare_cap = 0;
 	unsigned long target_util = ULONG_MAX;
 	unsigned long best_active_util = ULONG_MAX;
+	unsigned long target_idle_max_spare_cap = 0;
 	int best_idle_cstate = INT_MAX;
 	struct sched_domain *sd;
 	struct sched_group *sg;
@@ -6945,7 +6946,7 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	int best_idle_cpu = -1;
 	int target_cpu = -1;
 	int cpu, i;
-	long most_spare_cap = 0;
+	long spare_cap, most_spare_cap = 0;
 	int most_spare_cap_cpu = -1;
 	unsigned int active_cpus_count = 0;
 	int isolated_candidate = -1;
@@ -6989,8 +6990,7 @@ retry:
 		while ((i = cpumask_next(i, &search_cpus)) < nr_cpu_ids) {
 			unsigned long capacity_curr = capacity_curr_of(i);
 			unsigned long capacity_orig = capacity_orig_of(i);
-			unsigned long wake_util, new_util;
-			long spare_cap;
+			unsigned long wake_util, new_util, min_capped_util;
 
 			cpumask_clear_cpu(i, &search_cpus);
 
@@ -7026,15 +7026,18 @@ retry:
 			 * than the one required to boost the task.
 			 */
 			new_util = max(min_util, new_util);
-			if (new_util > capacity_orig)
-				continue;
 
 			/*
-			 * Pre-compute the maximum possible capacity we expect
-			 * to have available on this CPU once the task is
-			 * enqueued here.
+			 * Include minimum capacity constraint:
+			 * new_util contains the required utilization including
+			 * boost. min_capped_util also takes into account a
+			 * minimum capacity cap imposed on the CPU by external
+			 * actors.
 			 */
-			spare_cap = capacity_orig - new_util;
+			min_capped_util = max(new_util, capacity_min_of(i));
+
+			if (new_util > capacity_orig)
+				continue;
 
 			/*
 			 * Case A) Latency sensitive tasks
@@ -7087,9 +7090,9 @@ retry:
 				 * Case A.2: Target ACTIVE CPU
 				 * Favor CPUs with max spare capacity.
 				 */
-				if (capacity_curr > new_util &&
-				    spare_cap > target_max_spare_cap) {
-					target_max_spare_cap = spare_cap;
+				if ((capacity_curr > new_util) &&
+					(capacity_orig - new_util > target_max_spare_cap)) {
+					target_max_spare_cap = capacity_orig - new_util;
 					target_cpu = i;
 					continue;
 				}
@@ -7153,13 +7156,14 @@ retry:
 				 * IOW, prefer a deep IDLE LITTLE CPU vs a
 				 * shallow idle big CPU.
 				 */
-				if (capacity_orig == target_capacity &&
-				    sysctl_sched_cstate_aware &&
+				if (sysctl_sched_cstate_aware &&
 				    best_idle_cstate <= idle_idx)
 					continue;
 
 				/* Keep track of best idle CPU */
 				target_capacity = capacity_orig;
+				target_idle_max_spare_cap = capacity_orig -
+							    min_capped_util;
 				best_idle_cstate = idle_idx;
 				best_idle_cpu = i;
 				continue;
@@ -7194,11 +7198,11 @@ retry:
 			active_cpus_count++;
 
 			/* Favor CPUs with maximum spare capacity */
-			if (capacity_orig == target_capacity &&
-			    spare_cap < target_max_spare_cap)
+			if ((capacity_orig - min_capped_util) <
+				target_max_spare_cap)
 				continue;
 
-			target_max_spare_cap = spare_cap;
+			target_max_spare_cap = capacity_orig - min_capped_util;
 			target_capacity = capacity_orig;
 			target_util = new_util;
 			target_cpu = i;
