@@ -4374,12 +4374,12 @@ static void *def_tavil_mbhc_cal(void)
 
 	btn_high[0] = 75;
 	btn_high[1] = 260;
-	btn_high[2] = 750;
-	btn_high[3] = 750;
-	btn_high[4] = 750;
-	btn_high[5] = 750;
-	btn_high[6] = 750;
-	btn_high[7] = 750;
+	btn_high[2] = 480;
+	btn_high[3] = 480;
+	btn_high[4] = 480;
+	btn_high[5] = 480;
+	btn_high[6] = 480;
+	btn_high[7] = 480;
 
 	return tavil_wcd_cal;
 }
@@ -7020,16 +7020,16 @@ static struct snd_soc_card *populate_snd_card_dailinks(struct device *dev)
 			       sizeof(msm_mi2s_be_dai_links));
 			total_links += ARRAY_SIZE(msm_mi2s_be_dai_links);
 
-			if (get_hw_version_platform() == HARDWARE_PLATFORM_DIPPERN ||
-					get_hw_version_platform() == HARDWARE_PLATFORM_URSA ||
-					get_hw_version_platform() == HARDWARE_PLATFORM_EQUULEUS ||
-					get_hw_version_platform() == HARDWARE_PLATFORM_PERSEUS) {
+			if ((get_hw_version_platform() == HARDWARE_PLATFORM_DIPPERN) ||
+				(get_hw_version_platform() == HARDWARE_PLATFORM_URSA) ||
+				(get_hw_version_platform() == HARDWARE_PLATFORM_EQUULEUS) ||
+				(get_hw_version_platform() == HARDWARE_PLATFORM_PERSEUS)) {
 				memcpy(msm_tavil_snd_card_dai_links + total_links,
 						msm_quat_mi2s_tas2557_dai_links,
 						sizeof(msm_quat_mi2s_tas2557_dai_links));
 				total_links += ARRAY_SIZE(msm_quat_mi2s_tas2557_dai_links);
-			} else if (get_hw_version_platform() == HARDWARE_PLATFORM_POLARIS ||
-					get_hw_version_platform() == HARDWARE_PLATFORM_BERYLLIUM) {
+			} else if ((get_hw_version_platform() == HARDWARE_PLATFORM_POLARIS) ||
+			(get_hw_version_platform() == HARDWARE_PLATFORM_BERYLLIUM)) {
 				memcpy(msm_tavil_snd_card_dai_links + total_links,
 						msm_quat_mi2s_tas2559_dai_links,
 						sizeof(msm_quat_mi2s_tas2559_dai_links));
