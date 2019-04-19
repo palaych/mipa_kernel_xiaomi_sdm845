@@ -47,6 +47,7 @@
 #define	PPC_DRIVER_CFGDEV_NONCRC	0x00000101
 
 #define TAS2557_CAL_NAME    "/persist/audio/tas2557_cal.bin"
+#define RESTART_MAX 3
 
 
 static int tas2557_load_calibration(struct tas2557_priv *pTAS2557,
@@ -295,6 +296,14 @@ static void failsafe(struct tas2557_priv *pTAS2557)
 	pTAS2557->mnErrCode |= ERROR_FAILSAFE;
 	if (hrtimer_active(&pTAS2557->mtimer))
 		hrtimer_cancel(&pTAS2557->mtimer);
+	if(pTAS2557->mnRestart < RESTART_MAX)
+	{
+		pTAS2557->mnRestart ++;
+		msleep(100);
+		dev_err(pTAS2557->dev, "I2C COMM error, restart SmartAmp.\n");
+		schedule_delayed_work(&pTAS2557->irq_work, msecs_to_jiffies(100));
+		return;
+	}
 	pTAS2557->enableIRQ(pTAS2557, false);
 	tas2557_dev_load_data(pTAS2557, p_tas2557_shutdown_data);
 	pTAS2557->mbPowerUp = false;
@@ -463,15 +472,40 @@ int tas2557_enable(struct tas2557_priv *pTAS2557, bool bEnable)
 {
 	int nResult = 0;
 	unsigned int nValue;
+	const char *pFWName;
 	struct TProgram *pProgram;
 
 	dev_dbg(pTAS2557->dev, "Enable: %d\n", bEnable);
 
 	if ((pTAS2557->mpFirmware->mnPrograms == 0)
 		|| (pTAS2557->mpFirmware->mnConfigurations == 0)) {
-		dev_err(pTAS2557->dev, "%s, firmware not loaded\n", __func__);
-		goto end;
+		dev_err(pTAS2557->dev, "%s, firmware not loaded, try to load again\n", __func__);
+		/*Load firmware*/
+		if (pTAS2557->mnPGID == TAS2557_PG_VERSION_2P1) {
+			dev_info(pTAS2557->dev, "PG2.1 Silicon found\n");
+			pFWName = TAS2557_AAC_FW_NAME;
+		} else if (pTAS2557->mnPGID == TAS2557_PG_VERSION_1P0) {
+			dev_info(pTAS2557->dev, "PG1.0 Silicon found\n");
+			pFWName = TAS2557_PG1P0_FW_NAME;
+		} else {
+			nResult = -ENOTSUPP;
+			dev_info(pTAS2557->dev, "unsupport Silicon 0x%x\n", pTAS2557->mnPGID);
+			goto end;
+		}
+		if (pTAS2557->mnSpkType == VENDOR_ID_GOER)
+			pFWName = TAS2557_GOER_FW_NAME;
+		else if (pTAS2557->mnSpkType == VENDOR_ID_AAC)
+			pFWName = TAS2557_AAC_FW_NAME;
+		else
+			pFWName = TAS2557_DEFAULT_FW_NAME;
+
+		nResult = request_firmware_nowait(THIS_MODULE, 1, pFWName,
+			pTAS2557->dev, GFP_KERNEL, pTAS2557, tas2557_fw_ready);
+		if(nResult < 0)
+			goto end;
+		dev_err(pTAS2557->dev, "%s, firmware is loaded\n", __func__);
 	}
+
 	/* check safe guard*/
 	nResult = pTAS2557->read(pTAS2557, TAS2557_SAFE_GUARD_REG, &nValue);
 	if (nResult < 0)
@@ -479,6 +513,8 @@ int tas2557_enable(struct tas2557_priv *pTAS2557, bool bEnable)
 	if ((nValue&0xff) != TAS2557_SAFE_GUARD_PATTERN) {
 		dev_err(pTAS2557->dev, "ERROR safe guard failure!\n");
 		nResult = -EPIPE;
+		pTAS2557->mnErrCode = ERROR_SAFE_GUARD;
+		pTAS2557->mbPowerUp = true;
 		goto end;
 	}
 
@@ -538,6 +574,7 @@ int tas2557_enable(struct tas2557_priv *pTAS2557, bool bEnable)
 						ns_to_ktime((u64)LOW_TEMPERATURE_CHECK_PERIOD * NSEC_PER_MSEC), HRTIMER_MODE_REL);
 				}
 			}
+			pTAS2557->mnRestart = 0;
 		}
 	} else {
 		if (pTAS2557->mbPowerUp) {
@@ -554,6 +591,7 @@ int tas2557_enable(struct tas2557_priv *pTAS2557, bool bEnable)
 				goto end;
 
 			pTAS2557->mbPowerUp = false;
+			pTAS2557->mnRestart = 0;
 		}
 	}
 
@@ -561,7 +599,7 @@ int tas2557_enable(struct tas2557_priv *pTAS2557, bool bEnable)
 
 end:
 	if (nResult < 0) {
-		if (pTAS2557->mnErrCode & (ERROR_DEVA_I2C_COMM | ERROR_PRAM_CRCCHK | ERROR_YRAM_CRCCHK))
+		if (pTAS2557->mnErrCode & (ERROR_DEVA_I2C_COMM | ERROR_PRAM_CRCCHK | ERROR_YRAM_CRCCHK | ERROR_SAFE_GUARD))
 			failsafe(pTAS2557);
 	}
 
