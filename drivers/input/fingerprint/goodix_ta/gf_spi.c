@@ -44,8 +44,6 @@
 #include <linux/pm_wakeup.h>
 #include <drm/drm_bridge.h>
 #include <drm/drm_notifier.h>
-#include <linux/cpu_input_boost.h>
-#include <linux/devfreq_boost.h>
 
 #include "gf_spi.h"
 
@@ -508,10 +506,6 @@ static irqreturn_t gf_irq(int irq, void *handle)
 	temp[0] = GF_NET_EVENT_IRQ;
 	pr_debug("%s enter\n", __func__);
 	__pm_wakeup_event(&fp_wakelock, WAKELOCK_HOLD_TIME);
-
-	cpu_input_boost_kick_wake();
-	devfreq_boost_kick_wake(DEVFREQ_MSM_CPUBW);
-
 	sendnlmsg(temp);
 	if ((gf_dev->wait_finger_down == true) && (gf_dev->device_available == 1) && (gf_dev->fb_black == 1)) {
 		key_input = KEY_RIGHT;
