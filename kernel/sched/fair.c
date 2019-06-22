@@ -7322,8 +7322,6 @@ retry:
 	if (best_idle_cpu != -1 && !is_packing_eligible(p, target_cpu, fbt_env,
 					active_cpus_count, best_idle_cstate,
 					boosted)) {
-		if (target_cpu == prev_cpu)
-			fbt_env->avoid_prev_cpu = true;
 
 		target_cpu = best_idle_cpu;
 		best_idle_cpu = -1;
