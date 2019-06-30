@@ -6972,7 +6972,6 @@ static inline int find_best_target(struct task_struct *p, int *backup_cpu,
 	unsigned long target_max_spare_cap = 0;
 	unsigned long target_util = ULONG_MAX;
 	unsigned long best_active_util = ULONG_MAX;
-	unsigned long target_idle_max_spare_cap = 0;
 	int best_idle_cstate = INT_MAX;
 	struct sched_domain *sd;
 	struct sched_group *sg;
@@ -7083,8 +7082,7 @@ retry:
 			 * minimum capacity cap imposed on the CPU by external
 			 * actors.
 			 */
-			min_capped_util = max(new_util, capacity_min_of(i));
-
+			new_util = max(min_util, new_util);
 			if (new_util > capacity_orig)
 				continue;
 
@@ -7231,8 +7229,6 @@ retry:
 					continue;
 
 				target_capacity = capacity_orig;
-				target_idle_max_spare_cap = capacity_orig -
-							    min_capped_util;
 				best_idle_cstate = idle_idx;
 				best_idle_cpu = i;
 				continue;
