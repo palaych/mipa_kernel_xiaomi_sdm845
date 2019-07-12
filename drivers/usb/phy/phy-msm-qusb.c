@@ -1041,7 +1041,7 @@ static int qusb_phy_probe(struct platform_device *pdev)
 			qphy->core_clk = NULL;
 			if (ret == -EPROBE_DEFER)
 				return ret;
-			dev_err(dev, "couldn't get core_clk(%d)\n", ret);
+		dev_err(dev, "couldn't get iface_clk(%d)\n", ret);
 		}
 	}
 
