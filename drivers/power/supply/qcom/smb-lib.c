@@ -3383,13 +3383,14 @@ static int smblib_handle_usb_current(struct smb_charger *chg,
 	if (chg->real_charger_type == POWER_SUPPLY_TYPE_USB_FLOAT) {
 		if (usb_current == -ETIMEDOUT) {
 			/*
-			 * Valid FLOAT charger, report the current as 500mA
+			 * Valid FLOAT charger, report the current based
+			 * of Rp
 			 */
 			typec_mode = smblib_get_prop_typec_mode(chg);
 			rp_ua = get_rp_based_dcp_current(chg, typec_mode);
 			rp_ua = FLOAT_CHARGER_UA;
 			rc = vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER,
-							true, 500000);
+								true, rp_ua);
 			if (rc < 0)
 				return rc;
 		} else {
@@ -4769,8 +4770,8 @@ static void smblib_force_legacy_icl(struct smb_charger *chg, int pst)
 		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 3000000);
 		break;
 	default:
-		smblib_err(chg, "Unknown APSD %d; forcing suspend\n", pst);
-		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 0);
+		smblib_err(chg, "Unknown APSD %d; forcing 500mA\n", pst);
+		vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 500000);
 		break;
 	}
 }
@@ -5175,7 +5176,7 @@ static void smblib_handle_typec_removal(struct smb_charger *chg)
 	cancel_delayed_work_sync(&chg->check_vbus_work);
 
 	/* reset input current limit voters */
-	vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 0);
+	vote(chg->usb_icl_votable, LEGACY_UNKNOWN_VOTER, true, 100000);
 	vote(chg->usb_icl_votable, PD_VOTER, false, 0);
 	vote(chg->usb_icl_votable, USB_PSY_VOTER, false, 0);
 	vote(chg->usb_icl_votable, DCP_VOTER, false, 0);

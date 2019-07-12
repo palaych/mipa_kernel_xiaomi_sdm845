@@ -937,14 +937,9 @@ static int fg_get_prop_capacity(struct fg_chip *chip, int *val)
 		return 0;
 	}
 
-	if (chip->battery_missing) {
+	if (chip->battery_missing || !chip->soc_reporting_ready) {
 		*val = BATT_MISS_SOC;
 		return 0;
-	}
-
-	if (!chip->soc_reporting_ready) {
-		*val = BATT_MISS_SOC;
-		return -EBUSY;
 	}
 
 	if (is_batt_empty(chip)) {
@@ -1921,9 +1916,7 @@ static int fg_charge_full_update(struct fg_chip *chip)
 		msoc, bsoc, chip->health, chip->charge_status,
 		chip->charge_full);
 	if (chip->charge_done && !chip->charge_full) {
-		if (msoc >= 99 && (chip->health == POWER_SUPPLY_HEALTH_GOOD
-				|| chip->health == POWER_SUPPLY_HEALTH_COOL
-				|| chip->health == POWER_SUPPLY_HEALTH_WARM)) {
+		if (msoc >= 99 && chip->health == POWER_SUPPLY_HEALTH_GOOD) {
 			fg_dbg(chip, FG_STATUS, "Setting charge_full to true\n");
 			chip->charge_full = true;
 			/*
