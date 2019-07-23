@@ -1,7 +1,6 @@
 
 #include <linux/sched.h>
 #include <linux/sched/sysctl.h>
-#include <linux/sched/topology.h>
 #include <linux/sched/rt.h>
 #include <linux/sched/smt.h>
 #include <linux/u64_stats_sync.h>
@@ -2048,6 +2047,8 @@ cpu_util_freq(int cpu, struct sched_walt_cpu_load *walt_load)
 
 extern unsigned long
 boosted_cpu_util(int cpu, struct sched_walt_cpu_load *walt_load);
+#endif
+
 extern unsigned int capacity_margin_freq;
 
 static inline unsigned long
@@ -2059,8 +2060,6 @@ add_capacity_margin(unsigned long cpu_capacity, int cpu)
 	cpu_capacity /= SCHED_CAPACITY_SCALE;
 	return cpu_capacity;
 }
-
-#endif /* CONFIG_SMP */
 
 static inline void sched_rt_avg_update(struct rq *rq, u64 rt_delta)
 {
@@ -2825,12 +2824,6 @@ static inline void check_for_migration(struct rq *rq, struct task_struct *p) { }
 static inline int sched_boost(void)
 {
 	return 0;
-}
-
-static inline bool
-task_in_cum_window_demand(struct rq *rq, struct task_struct *p)
-{
-	return false;
 }
 
 static inline bool hmp_capable(void) { return false; }

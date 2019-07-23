@@ -3531,20 +3531,16 @@ pick_next_task(struct rq *rq, struct task_struct *prev, struct rq_flags *rf)
 	struct task_struct *p;
 
 	/*
-	 * Optimization: we know that if all tasks are in the fair class we can
-	 * call that function directly, but only if the @prev task wasn't of a
-	 * higher scheduling class, because otherwise those loose the
-	 * opportunity to pull in more work from other CPUs.
+	 * Optimization: we know that if all tasks are in
+	 * the fair class we can call that function directly:
 	 */
-	if (likely((prev->sched_class == &idle_sched_class ||
-		    prev->sched_class == &fair_sched_class) &&
+	if (likely(prev->sched_class == class &&
 		   rq->nr_running == rq->cfs.h_nr_running)) {
-
 		p = fair_sched_class.pick_next_task(rq, prev, rf);
 		if (unlikely(p == RETRY_TASK))
 			goto again;
 
-		/* Assumes fair_sched_class->next == idle_sched_class */
+		/* assumes fair_sched_class->next == idle_sched_class */
 		if (unlikely(!p))
 			p = idle_sched_class.pick_next_task(rq, prev, rf);
 
@@ -3561,8 +3557,7 @@ again:
 		}
 	}
 
-	/* The idle class should always have a runnable task: */
-	BUG();
+	BUG(); /* the idle class will always have a runnable task */
 }
 
 /*
@@ -9114,9 +9109,8 @@ int sched_rr_handler(struct ctl_table *table, int write,
 	/* make sure that internally we keep jiffies */
 	/* also, writing zero resets timeslice to default */
 	if (!ret && write) {
-		sched_rr_timeslice =
-			sysctl_sched_rr_timeslice <= 0 ? RR_TIMESLICE :
-			msecs_to_jiffies(sysctl_sched_rr_timeslice);
+		sched_rr_timeslice = sched_rr_timeslice <= 0 ?
+			RR_TIMESLICE : msecs_to_jiffies(sched_rr_timeslice);
 	}
 	mutex_unlock(&mutex);
 	return ret;
