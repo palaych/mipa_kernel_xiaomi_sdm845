@@ -66,13 +66,15 @@ static void lz4_exit(struct crypto_tfm *tfm)
 static int __lz4_compress_crypto(const u8 *src, unsigned int slen,
 				 u8 *dst, unsigned int *dlen, void *ctx)
 {
-	int out_len = LZ4_compress_default(src, dst,
-		slen, *dlen, ctx);
+	size_t tmp_len = *dlen;
+	int err;
 
-	if (!out_len)
+	err = lz4_compress(src, slen, dst, &tmp_len, ctx);
+
+	if (err < 0)
 		return -EINVAL;
 
-	*dlen = out_len;
+	*dlen = tmp_len;
 	return 0;
 }
 
@@ -94,13 +96,16 @@ static int lz4_compress_crypto(struct crypto_tfm *tfm, const u8 *src,
 static int __lz4_decompress_crypto(const u8 *src, unsigned int slen,
 				   u8 *dst, unsigned int *dlen, void *ctx)
 {
-	int out_len = LZ4_decompress_safe(src, dst, slen, *dlen);
+	int err;
+	size_t tmp_len = *dlen;
+	size_t __slen = slen;
 
-	if (out_len < 0)
+	err = lz4_decompress_unknownoutputsize(src, __slen, dst, &tmp_len);
+	if (err < 0)
 		return -EINVAL;
 
-	*dlen = out_len;
-	return 0;
+	*dlen = tmp_len;
+	return err;
 }
 
 static int lz4_sdecompress(struct crypto_scomp *tfm, const u8 *src,
