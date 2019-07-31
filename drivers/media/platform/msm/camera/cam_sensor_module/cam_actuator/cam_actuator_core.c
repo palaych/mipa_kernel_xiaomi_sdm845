@@ -751,7 +751,7 @@ int32_t cam_actuator_apply_request(struct cam_req_mgr_apply_request *apply)
 	trace_cam_apply_req("Actuator", apply->request_id);
 
 	CAM_DBG(CAM_ACTUATOR, "Request Id: %lld", apply->request_id);
-	mutex_lock(&(a_ctrl->actuator_mutex));
+
 	if ((apply->request_id ==
 		a_ctrl->i2c_data.per_frame[request_id].request_id) &&
 		(a_ctrl->i2c_data.per_frame[request_id].is_settings_valid)
@@ -762,7 +762,7 @@ int32_t cam_actuator_apply_request(struct cam_req_mgr_apply_request *apply)
 			CAM_ERR(CAM_ACTUATOR,
 				"Failed in applying the request: %lld\n",
 				apply->request_id);
-			goto release_mutex;
+			return rc;
 		}
 	}
 	del_req_id = (request_id +
@@ -777,14 +777,12 @@ int32_t cam_actuator_apply_request(struct cam_req_mgr_apply_request *apply)
 			CAM_ERR(CAM_ACTUATOR,
 				"Fail deleting the req: %d err: %d\n",
 				del_req_id, rc);
-			goto release_mutex;
+			return rc;
 		}
 	} else {
 		CAM_DBG(CAM_ACTUATOR, "No Valid Req to clean Up");
 	}
 
-release_mutex:
-	mutex_unlock(&(a_ctrl->actuator_mutex));
 	return rc;
 }
 
@@ -1375,9 +1373,7 @@ int32_t cam_actuator_flush_request(struct cam_req_mgr_flush_request *flush_req)
 			continue;
 
 		if (i2c_set->is_settings_valid == 1) {
-			mutex_lock(&(a_ctrl->actuator_mutex));
 			rc = delete_request(i2c_set);
-			mutex_unlock(&(a_ctrl->actuator_mutex));
 			if (rc < 0)
 				CAM_ERR(CAM_ACTUATOR,
 					"delete request: %lld rc: %d",
