@@ -280,8 +280,8 @@ static ssize_t dio_complete(struct dio *dio, ssize_t ret, bool is_async)
 		 */
 		dio->iocb->ki_pos += transferred;
 
-		if (dio->op == REQ_OP_WRITE)
-			ret = generic_write_sync(dio->iocb,  transferred);
+		if (ret > 0 && dio->op == REQ_OP_WRITE)
+			ret = generic_write_sync(dio->iocb, ret);
 		dio->iocb->ki_complete(dio->iocb, ret, 0);
 	}
 
@@ -433,9 +433,9 @@ static inline void dio_bio_submit(struct dio *dio, struct dio_submit *sdio)
 #ifdef CONFIG_PFK
 	bio->bi_dio_inode = dio->inode;
 
-/* iv sector for security/pfe/pfk_fscrypt.c and f2fs in fs/f2fs/f2fs.h */
+/* iv sector for security/pfe/pfk_fscrypt.c and f2fs in fs/f2fs/f2fs.h.*/
 #define PG_DUN_NEW(i,p)                                            \
-	((((i)->i_ino & 0xffffffff) << 32) | ((p) & 0xffffffff))
+	(((((u64)(i)->i_ino) & 0xffffffff) << 32) | ((p) & 0xffffffff))
 
 	if (is_inode_filesystem_type(dio->inode, "f2fs"))
 		fscrypt_set_ice_dun(dio->inode, bio, PG_DUN_NEW(dio->inode,
@@ -468,7 +468,6 @@ struct inode *dio_bio_get_inode(struct bio *bio)
 	return inode;
 }
 EXPORT_SYMBOL(dio_bio_get_inode);
-
 /*
  * Release any resources in case of a failure
  */
