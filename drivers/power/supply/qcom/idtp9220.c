@@ -569,15 +569,15 @@ static ssize_t chip_enable_store(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(chip_enable, 0644,
+static DEVICE_ATTR(chip_enable, S_IWUSR | S_IRUGO,
 		chip_enable_show, chip_enable_store);
-static DEVICE_ATTR(chip_version, 0444,
+static DEVICE_ATTR(chip_version, S_IRUGO,
 		chip_version_show, NULL);
-static DEVICE_ATTR(chip_vout, 0644,
+static DEVICE_ATTR(chip_vout, S_IWUSR | S_IRUGO,
 		chip_vout_show, chip_vout_store);
-static DEVICE_ATTR(chip_iout, 0644,
+static DEVICE_ATTR(chip_iout, S_IWUSR | S_IRUGO,
 		chip_iout_show, chip_iout_store);
-static DEVICE_ATTR(chip_freq, 0444,
+static DEVICE_ATTR(chip_freq, S_IRUGO,
 		chip_freq_show, NULL);
 
 static struct attribute *sysfs_attrs[] = {
