@@ -212,8 +212,8 @@ module_param_named(
 #define MICRO_1P5A		1500000
 #define MICRO_P1A		100000
 #define OTG_DEFAULT_DEGLITCH_TIME_MS	50
-#define MAX_DCP_ICL_UA		1800000
-#define DEFAULT_CRITICAL_JEITA_CCOMP	2975000
+#define MAX_DCP_ICL_UA  		1800000
+#define DEFAULT_CRITICAL_JEITA_CCOMP 	2975000
 #define JEITA_SOFT_HOT_CC_COMP		1600000
 #define JEITA_SOFT_COOL_CC_COMP		2225000
 #define MIN_WD_BARK_TIME		16
@@ -458,9 +458,9 @@ static int smb2_parse_dt(struct smb2 *chip)
 					&chg->otg_delay_ms);
 	if (rc < 0)
 		chg->otg_delay_ms = OTG_DEFAULT_DEGLITCH_TIME_MS;
-
 	rc = of_property_read_u32(node, "qcom,fcc-low-temp-delta",
 				&chip->dt.jeita_low_cc_delta);
+
 	if (rc < 0)
 		chip->dt.jeita_low_cc_delta = DEFAULT_CRITICAL_JEITA_CCOMP;
 	chg->jeita_ccomp_low_delta = chip->dt.jeita_low_cc_delta;
@@ -1435,7 +1435,7 @@ static int smb2_batt_get_prop(struct power_supply *psy,
 		val->intval = 0;
 		break;
 	case POWER_SUPPLY_PROP_CHARGER_TYPE:
-		val->intval = chg->real_charger_type;
+		val->intval = chg->usb_psy_desc.type;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
@@ -1791,7 +1791,8 @@ static int smb2_configure_typec(struct smb_charger *chg)
 	 * over-current happens
 	 */
 	rc = smblib_masked_write(chg, TYPE_C_CFG_REG,
-			FACTORY_MODE_DETECTION_EN_BIT | VCONN_OC_CFG_BIT, 0);
+			FACTORY_MODE_DETECTION_EN_BIT
+			| VCONN_OC_CFG_BIT, 0);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure Type-C rc=%d\n", rc);
 		return rc;
@@ -2034,8 +2035,7 @@ static int smb2_init_hw(struct smb2 *chip)
 	rc = smblib_masked_write(chg, USBIN_AICL_OPTIONS_CFG_REG,
 			USBIN_AICL_START_AT_MAX_BIT
 				| USBIN_AICL_ADC_EN_BIT
-				| USBIN_AICL_RERUN_EN_BIT,
-				USBIN_AICL_RERUN_EN_BIT);
+				| USBIN_AICL_RERUN_EN_BIT, USBIN_AICL_RERUN_EN_BIT);
 	if (rc < 0) {
 		dev_err(chg->dev, "Couldn't configure AICL rc=%d\n", rc);
 		return rc;

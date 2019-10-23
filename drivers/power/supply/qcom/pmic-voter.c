@@ -106,6 +106,11 @@ static void vote_min(struct votable *votable, int client_id,
 	*eff_res = INT_MAX;
 	*eff_id = -EINVAL;
 	for (i = 0; i < votable->num_clients && votable->client_strs[i]; i++) {
+		if (strcmp(votable->name, "FG_WS") != 0) {
+			if (votable->votes[i].enabled)
+				pr_info("%s: val: %d\n", votable->client_strs[i],
+							votable->votes[i].value);
+		}
 		if (votable->votes[i].enabled
 			&& *eff_res > votable->votes[i].value) {
 			*eff_res = votable->votes[i].value;
@@ -420,10 +425,12 @@ int vote(struct votable *votable, const char *client_str, bool enabled, int val)
 			|| (effective_result != votable->effective_result)) {
 		votable->effective_client_id = effective_id;
 		votable->effective_result = effective_result;
-		pr_debug("%s: effective vote is now %d voted by %s,%d\n",
-			votable->name, effective_result,
-			get_client_str(votable, effective_id),
-			effective_id);
+		if (strcmp(votable->name, "FG_WS") != 0) {
+			pr_info("%s: current vote is now %d voted by %s,%d,previous voted %d\n",
+				votable->name, effective_result,
+				get_client_str(votable, effective_id),
+				effective_id, votable->effective_result);
+		}
 		if (votable->callback && !votable->force_active)
 			rc = votable->callback(votable, votable->data,
 					effective_result,
@@ -635,7 +642,7 @@ struct votable *create_votable(const char *name,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	votable->status_ent = debugfs_create_file("status", S_IFREG | S_IRUGO,
+	votable->status_ent = debugfs_create_file("status", S_IFREG | 0444,
 				  votable->root, votable,
 				  &votable_status_ops);
 	if (!votable->status_ent) {
@@ -647,7 +654,7 @@ struct votable *create_votable(const char *name,
 	}
 
 	votable->force_val_ent = debugfs_create_u32("force_val",
-					S_IFREG | S_IWUSR | S_IRUGO,
+					S_IFREG | 0644,
 					votable->root,
 					&(votable->force_val));
 
@@ -660,7 +667,7 @@ struct votable *create_votable(const char *name,
 	}
 
 	votable->force_active_ent = debugfs_create_file("force_active",
-					S_IFREG | S_IRUGO,
+					S_IFREG | 0444,
 					votable->root, votable,
 					&votable_force_ops);
 	if (!votable->force_active_ent) {
