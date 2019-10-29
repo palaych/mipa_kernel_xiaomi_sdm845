@@ -10306,6 +10306,9 @@ static int ufshcd_devfreq_scale(struct ufs_hba *hba, bool scale_up)
 {
 	int ret = 0;
 
+	if (!hba->is_powered)
+		goto out;
+
 	if (hba->extcon && ufshcd_is_card_offline(hba))
 		return 0;
 
