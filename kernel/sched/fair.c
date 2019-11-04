@@ -7454,29 +7454,6 @@ bias_to_waker_cpu(struct task_struct *p, int cpu, struct cpumask *rtg_target)
 	       task_fits_max(p, cpu);
 }
 
-static inline bool
-task_is_boosted(struct task_struct *p) {
-#ifdef CONFIG_CGROUP_SCHEDTUNE
-	return schedtune_task_boost(p) > 0;
-#else
-	return get_sysctl_sched_cfs_boost() > 0;
-#endif
-}
-
-/*
- * Check whether cpu is in the fastest set of cpu's that p should run on.
- * If p is boosted, prefer that p runs on a faster cpu; otherwise, allow p
- * to run on any cpu.
- */
-static inline bool
-cpu_is_in_target_set(struct task_struct *p, int cpu, struct cpumask *rtg_target)
-{
-	int first_cpu = start_cpu(p, task_is_boosted(p), rtg_target);
-	int next_usable_cpu = cpumask_next(first_cpu - 1, tsk_cpus_allowed(p));
-	return cpu >= next_usable_cpu || next_usable_cpu >= nr_cpu_ids;
-}
-
-
 #define SCHED_SELECT_PREV_CPU_NSEC	2000000
 #define SCHED_FORCE_CPU_SELECTION_NSEC	20000000
 
@@ -7490,17 +7467,14 @@ bias_to_prev_cpu(struct task_struct *p, struct cpumask *rtg_target)
 	u64 ms = sched_clock();
 #endif
 
-	if (!cpu_is_in_target_set(p, prev_cpu, rtg_target)) {
-		return false;
-	}
-
 	if (cpu_isolated(prev_cpu) || !idle_cpu(prev_cpu))
 		return false;
 
 	if (!ms)
 		return false;
 
-	if (ms - p->last_cpu_deselected_ts >= SCHED_SELECT_PREV_CPU_NSEC) {
+	if (ms - p->last_cpu_selected_ts >= SCHED_SELECT_PREV_CPU_NSEC) {
+		p->last_cpu_selected_ts = ms;
 		return false;
 	}
 
@@ -7556,8 +7530,7 @@ enum fastpaths {
 	PREV_CPU_BIAS,
 };
 
-static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu,
-				   int sync_boost)
+static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu, int sync)
 {
 	bool boosted, prefer_idle;
 	struct sched_domain *sd;
@@ -7575,11 +7548,11 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu,
 	schedstat_inc(p->se.statistics.nr_wakeups_secb_attempts);
 	schedstat_inc(this_rq()->eas_stats.secb_attempts);
 
-	rcu_read_lock();
-	boosted = task_is_boosted(p);
 #ifdef CONFIG_CGROUP_SCHEDTUNE
+	boosted = schedtune_task_boost(p) > 0;
 	prefer_idle = schedtune_prefer_idle(p) > 0;
 #else
+	boosted = get_sysctl_sched_cfs_boost() > 0;
 	prefer_idle = 0;
 #endif
 
@@ -7594,12 +7567,28 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu,
 	fbt_env.placement_boost = task_boost_policy(p);
 	fbt_env.avoid_prev_cpu = false;
 
+	if (prefer_idle || fbt_env.need_idle)
+		sync = 0;
+
+	if (sysctl_sched_sync_hint_enable && sync) {
+		int cpu = smp_processor_id();
+
+		if (bias_to_waker_cpu(p, cpu, rtg_target)) {
+			schedstat_inc(p->se.statistics.nr_wakeups_secb_sync);
+			schedstat_inc(this_rq()->eas_stats.secb_sync);
+			target_cpu = cpu;
+			fastpath = SYNC_WAKEUP;
+			goto out;
+		}
+	}
 
 	if (bias_to_prev_cpu(p, rtg_target)) {
 		target_cpu = prev_cpu;
 		fastpath = PREV_CPU_BIAS;
-		goto unlock;
+		goto out;
 	}
+
+	rcu_read_lock();
 
 	sd = rcu_dereference(per_cpu(sd_ea, prev_cpu));
 	if (!sd) {
@@ -7610,8 +7599,8 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu,
 	sync_entity_load_avg(&p->se);
 
 	/* Find a cpu with sufficient capacity */
-	next_cpu = find_best_target(p, &backup_cpu, boosted || sync_boost,
-				    prefer_idle, &fbt_env);
+	next_cpu = find_best_target(p, &backup_cpu, boosted, prefer_idle,
+				    &fbt_env);
 	if (next_cpu == -1) {
 		target_cpu = prev_cpu;
 		goto unlock;
@@ -7686,7 +7675,8 @@ static int select_energy_cpu_brute(struct task_struct *p, int prev_cpu,
 
 unlock:
 	rcu_read_unlock();
-	trace_sched_task_util(p, next_cpu, backup_cpu, target_cpu,
+out:
+	trace_sched_task_util(p, next_cpu, backup_cpu, target_cpu, sync,
 			      fbt_env.need_idle, fastpath,
 			      fbt_env.placement_boost, rtg_target ?
 			      cpumask_first(rtg_target) : -1, start_t);
@@ -7715,34 +7705,13 @@ select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_f
 	int sync = wake_flags & WF_SYNC;
 
 	if (sd_flag & SD_BALANCE_WAKE) {
-		int _wake_cap = wake_cap(p, cpu, prev_cpu);
-
-		if (cpumask_test_cpu(cpu, tsk_cpus_allowed(p))) {
-			bool about_to_idle = (cpu_rq(cpu)->nr_running < 2);
-
-			if (sysctl_sched_sync_hint_enable && sync &&
-			    !_wake_cap && about_to_idle &&
-			    cpu_is_in_target_set(p, cpu, NULL))
-				return cpu;
-		}
-
 		record_wakee(p);
-		want_affine = (!wake_wide(p) && !_wake_cap &&
+		want_affine = (!wake_wide(p) && !wake_cap(p, cpu, prev_cpu) &&
 			cpumask_test_cpu(cpu, tsk_cpus_allowed(p)));
 	}
 
-	if (energy_aware() && !(cpu_rq(prev_cpu)->rd->overutilized)) {
-		/*
-		 * If the sync flag is set but ignored, prefer to
-		 * select cpu in the same cluster as current. So
-		 * if current is a big cpu and sync is set, indicate
-		 * that the selection algorithm for a boosted task
-		 * should be used.
-		 */
-		bool sync_boost = sync && cpu >= start_cpu(p, true, NULL);
-
-		return select_energy_cpu_brute(p, prev_cpu, sync_boost);
-	}
+	if (energy_aware() && !(cpu_rq(prev_cpu)->rd->overutilized))
+		return select_energy_cpu_brute(p, prev_cpu, sync);
 
 	rcu_read_lock();
 	for_each_domain(cpu, tmp) {
@@ -11425,7 +11394,7 @@ static inline bool vruntime_normalized(struct task_struct *p)
 	 *   waiting for actually being woken up by sched_ttwu_pending().
 	 */
 	if (!se->sum_exec_runtime ||
-	    (p->state == TASK_WAKING && p->sched_class == &fair_sched_class))
+	    (p->state == TASK_WAKING && p->sched_remote_wakeup))
 		return true;
 
 	return false;

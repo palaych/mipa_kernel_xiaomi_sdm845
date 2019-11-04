@@ -1179,6 +1179,7 @@ struct eas_stats {
 
 	/* select_energy_cpu_brute() stats */
 	u64 secb_attempts;
+	u64 secb_sync;
 	u64 secb_idle_bt;
 	u64 secb_insuff_cap;
 	u64 secb_no_nrg_sav;
@@ -1477,6 +1478,7 @@ struct sched_statistics {
 
 	/* energy_aware_wake_cpu() */
 	u64			nr_wakeups_secb_attempts;
+	u64			nr_wakeups_secb_sync;
 	u64			nr_wakeups_secb_idle_bt;
 	u64			nr_wakeups_secb_insuff_cap;
 	u64			nr_wakeups_secb_no_nrg_sav;
@@ -1716,7 +1718,7 @@ struct task_struct {
 	struct sched_entity se;
 	struct sched_rt_entity rt;
 	u64 last_sleep_ts;
-	u64 last_cpu_deselected_ts;
+	u64 last_cpu_selected_ts;
 #ifdef CONFIG_SCHED_WALT
 	struct ravg ravg;
 	/*
