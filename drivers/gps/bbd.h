@@ -40,7 +40,7 @@ union short_union_t {
 #pragma pack()
 
 
-#define BBD_DEVICE_MAJOR	239
+#define BBD_DEVICE_MAJOR	240
 enum {
 	BBD_MINOR_SHMD	    = 0,
 	BBD_MINOR_SENSOR    = 1,
@@ -101,4 +101,8 @@ extern void bbd_parse_asic_data(unsigned char *pucData,
 					void *priv),
 					void *priv);
 
+
+#ifdef CONFIG_BCM_GPS_SPI_DRIVER
+extern void bcm477x_debug_info(const char *buf);
+#endif
 #endif /* __BBD_H__ */
