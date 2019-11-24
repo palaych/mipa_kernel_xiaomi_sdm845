@@ -323,7 +323,7 @@ static void get_config_work(struct work_struct *work)
 		if (rc == -ENODEV || rc == -EBUSY) {
 			if (chip->get_config_retry_count++
 					< GET_CONFIG_RETRY_COUNT) {
-				pr_info("bms_psy is not ready, retry: %d\n",
+				pr_debug("bms_psy is not ready, retry: %d\n",
 						chip->get_config_retry_count);
 				goto reschedule;
 			}
@@ -404,12 +404,11 @@ static int get_val(struct range_data *range, int hysteresis, int current_index,
 	}
 
 	if (threshold < range[0].low_threshold) {
-			*new_index = 0;
-			*val = range[*new_index].value;
-	}
-	else if (threshold > range[MAX_STEP_CHG_ENTRIES - 1].low_threshold) {
-			*new_index = MAX_STEP_CHG_ENTRIES - 1;
-			*val = range[*new_index].value;
+		*new_index = 0;
+		*val = range[*new_index].value;
+	} else if (threshold > range[MAX_STEP_CHG_ENTRIES - 1].low_threshold) {
+		*new_index = MAX_STEP_CHG_ENTRIES - 1;
+		*val = range[*new_index].value;
 	}
 
 	/*

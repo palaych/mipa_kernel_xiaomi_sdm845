@@ -458,9 +458,9 @@ static int smb2_parse_dt(struct smb2 *chip)
 					&chg->otg_delay_ms);
 	if (rc < 0)
 		chg->otg_delay_ms = OTG_DEFAULT_DEGLITCH_TIME_MS;
+
 	rc = of_property_read_u32(node, "qcom,fcc-low-temp-delta",
 				&chip->dt.jeita_low_cc_delta);
-
 	if (rc < 0)
 		chip->dt.jeita_low_cc_delta = DEFAULT_CRITICAL_JEITA_CCOMP;
 	chg->jeita_ccomp_low_delta = chip->dt.jeita_low_cc_delta;
@@ -476,7 +476,6 @@ static int smb2_parse_dt(struct smb2 *chip)
 	if (rc < 0)
 		chip->dt.jeita_cool_cc_delta = JEITA_SOFT_COOL_CC_COMP;
 	chg->jeita_ccomp_cool_delta = chip->dt.jeita_cool_cc_delta;
-
 
 	chg->disable_stat_sw_override = of_property_read_bool(node,
 					"qcom,disable-stat-sw-override");
