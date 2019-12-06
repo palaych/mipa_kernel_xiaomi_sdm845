@@ -95,17 +95,18 @@ add_if() {
 del_if() {
 	local table
 	[[ $HAVE_SET_DNS -eq 0 ]] || unset_dns
+	[[ $HAVE_SET_IPTABLES -eq 0 ]] || remove_iptables
 	if [[ -z $TABLE || $TABLE == auto ]] && get_fwmark table && [[ $(wg show "$INTERFACE" allowed-ips) =~ /0(\ |$'\n'|$) ]]; then
-		while [[ $(ip -4 rule show) == *"lookup $table"* ]]; do
+		while [[ $(ip -4 rule show 2>/dev/null) == *"lookup $table"* ]]; do
 			cmd ip -4 rule delete table $table
 		done
-		while [[ $(ip -4 rule show) == *"from all lookup main suppress_prefixlength 0"* ]]; do
+		while [[ $(ip -4 rule show 2>/dev/null) == *"from all lookup main suppress_prefixlength 0"* ]]; do
 			cmd ip -4 rule delete table main suppress_prefixlength 0
 		done
-		while [[ $(ip -6 rule show) == *"lookup $table"* ]]; do
+		while [[ $(ip -6 rule show 2>/dev/null) == *"lookup $table"* ]]; do
 			cmd ip -6 rule delete table $table
 		done
-		while [[ $(ip -6 rule show) == *"from all lookup main suppress_prefixlength 0"* ]]; do
+		while [[ $(ip -6 rule show 2>/dev/null) == *"from all lookup main suppress_prefixlength 0"* ]]; do
 			cmd ip -6 rule delete table main suppress_prefixlength 0
 		done
 	fi
@@ -180,23 +181,44 @@ get_fwmark() {
 	return 0
 }
 
+remove_iptables() {
+	local line iptables found restore
+	for iptables in iptables ip6tables; do
+		restore="" found=0
+		while read -r line; do
+			[[ $line == "*"* || $line == COMMIT || $line == "-A "*"-m comment --comment \"wg-quick(8) rule for $INTERFACE\""* ]] || continue
+			[[ $line == "-A"* ]] && found=1
+			printf -v restore '%s%s\n' "$restore" "${line/#-A/-D}"
+		done < <($iptables-save 2>/dev/null)
+		[[ $found -ne 1 ]] || echo -n "$restore" | cmd $iptables-restore -n
+	done
+}
+
+HAVE_SET_IPTABLES=0
 add_default() {
-	local table proto key value
+	local table proto i iptables
 	if ! get_fwmark table; then
 		table=51820
-		while [[ -n $(ip -4 route show table $table) || -n $(ip -6 route show table $table) ]]; do
+		while [[ -n $(ip -4 route show table $table 2>/dev/null) || -n $(ip -6 route show table $table 2>/dev/null) ]]; do
 			((table++))
 		done
 		cmd wg set "$INTERFACE" fwmark $table
 	fi
-	proto=-4
-	[[ $1 == *:* ]] && proto=-6
+	proto=-4 iptables=iptables
+	[[ $1 == *:* ]] && proto=-6 iptables=ip6tables
 	cmd ip $proto route add "$1" dev "$INTERFACE" table $table
 	cmd ip $proto rule add not fwmark $table table $table
 	cmd ip $proto rule add table main suppress_prefixlength 0
-	while read -r key _ value; do
-		[[ $value -eq 1 ]] && sysctl -q "$key=2"
-	done < <(sysctl -a -r '^net\.ipv4.conf\.[^ .=]+\.rp_filter$')
+
+	local marker="-m comment --comment \"wg-quick(8) rule for $INTERFACE\"" restore=$'*raw\n'
+	for i in "${ADDRESSES[@]}"; do
+		[[ ( $proto == -4 && $i != *:* ) || ( $proto == -6 && $i == *:* ) ]] || continue
+		printf -v restore '%s-I PREROUTING ! -i %s -d %s -m addrtype ! --src-type LOCAL -j DROP %s\n' "$restore" "$INTERFACE" "${i%/*}" "$marker"
+	done
+	printf -v restore '%sCOMMIT\n*mangle\n-I POSTROUTING -m mark --mark %d -p udp -j CONNMARK --save-mark %s\n-I PREROUTING -p udp -j CONNMARK --restore-mark %s\nCOMMIT\n' "$restore" $table "$marker" "$marker"
+	[[ $proto == -4 ]] && cmd sysctl -q net.ipv4.conf.all.src_valid_mark=1
+	echo -n "$restore" | cmd $iptables-restore -n
+	HAVE_SET_IPTABLES=1
 	return 0
 }
 
@@ -300,7 +322,8 @@ cmd_down() {
 	execute_hooks "${PRE_DOWN[@]}"
 	[[ $SAVE_CONFIG -eq 0 ]] || save_config
 	del_if
-	unset_dns
+	unset_dns || true
+	remove_iptables || true
 	execute_hooks "${POST_DOWN[@]}"
 }
 
