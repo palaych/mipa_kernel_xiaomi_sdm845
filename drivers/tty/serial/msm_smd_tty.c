@@ -1,5 +1,5 @@
 /* Copyright (C) 2007 Google, Inc.
- * Copyright (c) 2009-2015, 2017, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2015, 2017, 2019, The Linux Foundation. All rights reserved.
  * Author: Brian Swetland <swetland@google.com>
  *
  * This software is licensed under the terms of the GNU General Public
@@ -491,7 +491,11 @@ static int smd_tty_port_activate(struct tty_port *tport,
 	struct smd_tty_info *info;
 	const char *peripheral = NULL;
 
+<<<<<<< HEAD
 	if (n >= MAX_SMD_TTYS)
+=======
+	if (n >= MAX_SMD_TTYS || smd_tty[n].ch_name == NULL)
+>>>>>>> d7aa437377a2c836431a6b3d6db6e95bc7f6e7d9
 		return -ENODEV;
 
 	info = smd_tty + n;
