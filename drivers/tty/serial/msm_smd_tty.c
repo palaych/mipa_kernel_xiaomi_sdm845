@@ -491,11 +491,7 @@ static int smd_tty_port_activate(struct tty_port *tport,
 	struct smd_tty_info *info;
 	const char *peripheral = NULL;
 
-<<<<<<< HEAD
 	if (n >= MAX_SMD_TTYS)
-=======
-	if (n >= MAX_SMD_TTYS || smd_tty[n].ch_name == NULL)
->>>>>>> d7aa437377a2c836431a6b3d6db6e95bc7f6e7d9
 		return -ENODEV;
 
 	info = smd_tty + n;
