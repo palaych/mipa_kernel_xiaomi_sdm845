@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
- * Copyright (C) 2018 XiaoMi, Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -63,6 +63,14 @@ static const struct of_device_id dsi_display_dt_match[] = {
 
 static struct dsi_display *primary_display;
 static struct dsi_display *secondary_display;
+
+const char *dsi_get_display_name(void)
+{
+	if (primary_display)
+		return primary_display->name;
+	else
+		return NULL;
+}
 
 static void dsi_display_mask_ctrl_error_interrupts(struct dsi_display *display,
 			u32 mask, bool enable)
