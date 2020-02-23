@@ -4,7 +4,7 @@
  * FTS Capacitive touch screen controller (FingerTipS)
  *
  * Copyright (C) 2017, STMicroelectronics
- * Copyright (C) 2018 XiaoMi, Inc.
+ * Copyright (C) 2019 XiaoMi, Inc.
  * Authors: AMG(Analog Mems Group)
  *
  * 		marco.cali@st.com
@@ -183,6 +183,7 @@ struct fts_hw_platform_data {
 	int *key_code;
 #endif
 	unsigned long keystates;
+	bool check_display_name;
 };
 
 /*
@@ -196,6 +197,27 @@ extern char tag[8];
  */
 typedef void (*event_dispatch_handler_t)
  (struct fts_ts_info *info, unsigned char *data);
+
+#ifdef CONFIG_SECURE_TOUCH
+
+struct fts_secure_info {
+	bool secure_inited;
+	atomic_t st_1st_complete;
+	atomic_t st_enabled;
+	atomic_t st_pending_irqs;
+	struct completion st_irq_processed;
+	struct completion st_powerdown;
+	void *fts_info;
+};
+#endif
+
+#ifdef CONFIG_I2C_BY_DMA
+struct fts_dma_buf {
+	struct mutex dmaBufLock;
+	u8 *rdBuf;
+	u8 *wrBuf;
+};
+#endif
 
 /**
  * FTS capacitive touch screen device information
@@ -234,7 +256,9 @@ struct fts_ts_info {
 	struct work_struct work;
 	struct work_struct suspend_work;
 	struct work_struct resume_work;
+	struct work_struct cmd_update_work;
 	struct workqueue_struct *event_wq;
+	struct workqueue_struct *touch_feature_wq;
 
 #ifndef FW_UPDATE_ON_PROBE
 	struct delayed_work fwu_work;
@@ -257,6 +281,7 @@ struct fts_ts_info {
 	int fwupdate_stat;
 
 	struct notifier_block notifier;
+	struct notifier_block bl_notifier;
 	bool sensor_sleep;
 	struct pinctrl *ts_pinctrl;
 	struct pinctrl_state *pinctrl_state_active;
@@ -270,6 +295,7 @@ struct fts_ts_info {
 
 	/* input lock */
 	struct mutex input_report_mutex;
+	struct mutex cmd_update_mutex;
 	int gesture_enabled;
 	int glove_enabled;
 	int charger_enabled;
@@ -285,11 +311,19 @@ struct fts_ts_info {
 #endif
 	struct class *fts_tp_class;
 	struct device *fts_touch_dev;
-
+#ifdef CONFIG_SECURE_TOUCH
+	struct fts_secure_info *secure_info;
+#endif
+#ifdef CONFIG_I2C_BY_DMA
+	struct fts_dma_buf *dma_buf;
+#endif
 	bool lockdown_is_ok;
 	struct completion tp_reset_completion;
 	atomic_t system_is_resetting;
 	unsigned int fod_status;
+	bool irq_status;
+	bool dev_pm_suspend;
+	struct completion dev_pm_suspend_completion;
 };
 
 struct fts_mode_switch {
