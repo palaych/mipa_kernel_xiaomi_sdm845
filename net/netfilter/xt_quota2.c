@@ -300,10 +300,6 @@ quota_mt2(const struct sk_buff *skb, struct xt_action_param *par)
 			if (!no_change)
 				e->quota -= charge;
 			ret = !ret;
-			/* Send kernel uevent if quota is 0 */
-			if (e->quota == 0) {
-				quota2_log(par->in, par->out, e, q->name);
-			}
 		} else if (e->quota) {
 			/* We are transitioning, log that fact. */
 			quota2_log(par->in, par->out, e, q->name);
