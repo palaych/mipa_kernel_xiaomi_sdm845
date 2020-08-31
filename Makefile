@@ -818,7 +818,7 @@ KBUILD_CFLAGS += $(call cc-disable-warning, undefined-optimized)
 KBUILD_CFLAGS += $(call cc-disable-warning, tautological-constant-out-of-range-compare)
 KBUILD_CFLAGS += $(call cc-option, -Wno-sometimes-uninitialized)
 KBUILD_CFLAGS += $(call cc-disable-warning, void-pointer-to-int-cast)
-
+KBUILD_CFLAGS += $(call cc-disable-warning, compound-token-split-by-space)
 # Quiet clang warning: comparison of unsigned expression < 0 is always false
 
 KBUILD_CFLAGS += $(call cc-disable-warning, tautological-compare)
